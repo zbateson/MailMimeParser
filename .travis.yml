@@ -11,7 +11,6 @@ php:
     - hhvm-3.12
     - hhvm-3.15
     - hhvm-3.18
-    - hhvm
 
 before_script:
     - composer update

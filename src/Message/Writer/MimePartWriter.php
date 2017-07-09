@@ -33,7 +33,7 @@ class MimePartWriter
      *      names used in setTransferEncodingFilterOnStream
      */
     private static $typeToEncodingMap = [
-        'quoted-printable' => 'convert.quoted-printable-encode',
+        'quoted-printable' => 'mmp-convert.quoted-printable-encode',
         'base64' => 'mmp-convert.base64-encode',
         'x-uuencode' => 'mailmimeparser-uuencode',
     ];
