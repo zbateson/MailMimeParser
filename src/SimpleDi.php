@@ -264,7 +264,7 @@ class SimpleDi
         // entire stream comes in a single buffer.
         $filters = stream_get_filters();
         // @codeCoverageIgnoreStart
-        if (!in_array('convert.*', $filters)) {
+        if ((!in_array('convert.*', $filters)) || (defined('HHVM_VERSION') && HHVM_VERSION >= '3.15.0' && HHVM_VERSION < '3.16.0')) {
             stream_filter_register(
                 'convert.quoted-printable-decode',
                 __NAMESPACE__ . '\Stream\ConvertStreamFilter'
