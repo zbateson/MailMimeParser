@@ -112,7 +112,7 @@ class PartStreamRegistry
         $encoding = strtolower($part->getHeaderValue('Content-Transfer-Encoding'));
         switch ($encoding) {
             case 'quoted-printable':
-                stream_filter_append($handle, 'convert.quoted-printable-decode', STREAM_FILTER_READ);
+                stream_filter_append($handle, 'mmp-convert.quoted-printable-decode', STREAM_FILTER_READ);
                 break;
             case 'base64':
                 stream_filter_append($handle, 'mmp-convert.base64-decode', STREAM_FILTER_READ);
