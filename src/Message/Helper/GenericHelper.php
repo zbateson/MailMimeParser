@@ -7,9 +7,8 @@
 namespace ZBateson\MailMimeParser\Message\Helper;
 
 use ZBateson\MailMimeParser\MailMimeParser;
-use ZBateson\MailMimeParser\Message;
-use ZBateson\MailMimeParser\Message\Part\MimePart;
-use ZBateson\MailMimeParser\Message\Part\ParentHeaderPart;
+use ZBateson\MailMimeParser\IMessage;
+use ZBateson\MailMimeParser\Message\IMimePart;
 
 /**
  * Provides common Message helper routines for Message manipulation.
@@ -41,12 +40,12 @@ class GenericHelper extends AbstractHelper
      * Copies the passed $header from $from, to $to or sets the header to
      * $default if it doesn't exist in $from.
      *
-     * @param ParentHeaderPart $from
-     * @param ParentHeaderPart $to
+     * @param IMimePart $from
+     * @param IMimePart $to
      * @param string $header
      * @param string $default
      */
-    public function copyHeader(ParentHeaderPart $from, ParentHeaderPart $to, $header, $default = null)
+    public function copyHeader(IMimePart $from, IMimePart $to, $header, $default = null)
     {
         $fromHeader = $from->getHeader($header);
         $set = ($fromHeader !== null) ? $fromHeader->getRawValue() : $default;
@@ -60,9 +59,9 @@ class GenericHelper extends AbstractHelper
      * https://tools.ietf.org/html/rfc4021#section-2.2) from the passed part,
      * then detaches its content stream.
      * 
-     * @param ParentHeaderPart $part
+     * @param IMimePart $part
      */
-    public function removeContentHeadersAndContent(ParentHeaderPart $part)
+    public function removeContentHeadersAndContent(IMimePart $part)
     {
         foreach (self::$contentHeaders as $header) {
             $part->removeHeader($header);
@@ -77,11 +76,11 @@ class GenericHelper extends AbstractHelper
      * isn't defined in $from, defaults to text/plain with utf-8 and
      * quoted-printable.
      *
-     * @param ParentHeaderPart $from
-     * @param ParentHeaderPart $to
+     * @param IMimePart $from
+     * @param IMimePart $to
      * @param bool $move
      */
-    public function copyContentHeadersAndContent(ParentHeaderPart $from, ParentHeaderPart $to, $move = false)
+    public function copyContentHeadersAndContent(IMimePart $from, IMimePart $to, $move = false)
     {
         $this->copyHeader($from, $to, 'Content-Type', 'text/plain; charset=utf-8');
         if ($from->getHeader('Content-Type') === null) {
@@ -106,12 +105,12 @@ class GenericHelper extends AbstractHelper
      * used for something else (e.g. changing a non-mime message to a multipart
      * mime message).
      *
-     * @param ParentHeaderPart $part
+     * @param IMimePart $part
      * @return MimePart the newly-created MimePart
     */
-    public function createNewContentPartFrom(ParentHeaderPart $part)
+    public function createNewContentPartFrom(IMimePart $part)
     {
-        $mime = $this->partBuilderFactory->newPartBuilder($this->mimePartFactory)->createMessagePart();
+        $mime = $this->mimePartFactory->newInstance();
         $this->copyContentHeadersAndContent($part, $mime, true);
         return $mime;
     }
@@ -122,38 +121,41 @@ class GenericHelper extends AbstractHelper
      * content resource handle of $from to $to, and loops over child parts,
      * removing them from $from and adding them to $to.
      *
-     * @param ParentHeaderPart $from
-     * @param ParentHeaderPart $to
+     * @param IMimePart $from
+     * @param IMimePart $to
      */
-    public function movePartContentAndChildren(ParentHeaderPart $from, ParentHeaderPart $to)
+    public function movePartContentAndChildren(IMimePart $from, IMimePart $to)
     {
         $this->copyContentHeadersAndContent($from, $to, true);
-        foreach ($from->getChildParts() as $child) {
-            $from->removePart($child);
-            $to->addChild($child);
+        if ($from->getChildCount() > 0) {
+            foreach ($from->getChildIterator() as $child) {
+                $from->removePart($child);
+                $to->addChild($child);
+            }
         }
     }
 
     /**
-     * Replaces the $part ParentHeaderPart with $replacement.
+     * Replaces the $part IMimePart with $replacement.
      *
      * Essentially removes $part from its parent, and adds $replacement in its
-     * same position.  If $part is this Message, then $part can't be removed and
+     * same position.  If $part is the IMessage, then $part can't be removed and
      * replaced, and instead $replacement's type headers are copied to $message,
      * and any children below $replacement are added directly below $message.
      *
-     * @param Message $message
-     * @param ParentHeaderPart $part
-     * @param ParentHeaderPart $replacement
+     * @param IMessage $message
+     * @param IMimePart $part
+     * @param IMimePart $replacement
      */
-    public function replacePart(Message $message, ParentHeaderPart $part, ParentHeaderPart $replacement)
+    public function replacePart(IMessage $message, IMimePart $part, IMimePart $replacement)
     {
         $position = $message->removePart($replacement);
         if ($part === $message) {
-            $this->movePartContentAndChildren($replacement, $part);
+            $this->movePartContentAndChildren($replacement, $message);
             return;
         }
         $parent = $part->getParent();
         $parent->addChild($replacement, $position);
+        $parent->removePart($part);
     }
 }

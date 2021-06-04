@@ -15,8 +15,8 @@ use ZBateson\StreamDecorators\NonClosingStream;
 use ZBateson\StreamDecorators\PregReplaceFilterStream;
 use ZBateson\StreamDecorators\QuotedPrintableStream;
 use ZBateson\StreamDecorators\UUStream;
-use ZBateson\MailMimeParser\Message\Part\MessagePart;
-use ZBateson\MailMimeParser\Message\Part\PartBuilder;
+use ZBateson\MailMimeParser\Message\IMessagePart;
+use ZBateson\MailMimeParser\Parser\PartBuilder;
 
 /**
  * Factory class for Psr7 stream decorators used in MailMimeParser.
@@ -155,10 +155,10 @@ class StreamFactory
     /**
      * Creates and returns a MessagePartStream
      *
-     * @param MessagePart $part
+     * @param IMessagePart $part
      * @return MessagePartStream
      */
-    public function newMessagePartStream(MessagePart $part)
+    public function newMessagePartStream(IMessagePart $part)
     {
         return new MessagePartStream($this, $part);
     }
@@ -166,10 +166,10 @@ class StreamFactory
     /**
      * Creates and returns a HeaderStream
      *
-     * @param MessagePart $part
+     * @param IMessagePart $part
      * @return HeaderStream
      */
-    public function newHeaderStream(MessagePart $part)
+    public function newHeaderStream(IMessagePart $part)
     {
         return new HeaderStream($part);
     }

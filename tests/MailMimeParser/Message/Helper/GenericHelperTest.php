@@ -18,45 +18,37 @@ class GenericHelperTest extends TestCase
 {
     private $mockMimePartFactory;
     private $mockUUEncodedPartFactory;
-    private $mockPartBuilderFactory;
 
     protected function legacySetUp()
     {
-        $this->mockMimePartFactory = $this->getMockBuilder('ZBateson\MailMimeParser\Message\Part\Factory\MimePartFactory')
+        $this->mockMimePartFactory = $this->getMockBuilder('ZBateson\MailMimeParser\Message\Factory\MimePartFactory')
             ->disableOriginalConstructor()
             ->getMock();
-        $this->mockUUEncodedPartFactory = $this->getMockBuilder('ZBateson\MailMimeParser\Message\Part\Factory\UUEncodedPartFactory')
-            ->disableOriginalConstructor()
-            ->getMock();
-        $this->mockPartBuilderFactory = $this->getMockBuilder('ZBateson\MailMimeParser\Message\Part\Factory\PartBuilderFactory')
+        $this->mockUUEncodedPartFactory = $this->getMockBuilder('ZBateson\MailMimeParser\Message\Factory\UUEncodedPartFactory')
             ->disableOriginalConstructor()
             ->getMock();
     }
 
-    private function newMockMimePart()
+    private function newMockIMimePart()
     {
-        return $this->getMockBuilder('ZBateson\MailMimeParser\Message\Part\MimePart')
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->getMockForAbstractClass('ZBateson\MailMimeParser\Message\IMimePart');
     }
 
-    private function newMockMessage()
+    private function newMockIMessage()
     {
-        return $this->getMockBuilder('ZBateson\MailMimeParser\Message')
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->getMockForAbstractClass('ZBateson\MailMimeParser\IMessage');
     }
 
     private function newGenericHelper()
     {
-        return new GenericHelper($this->mockMimePartFactory, $this->mockUUEncodedPartFactory, $this->mockPartBuilderFactory);
+        return new GenericHelper($this->mockMimePartFactory, $this->mockUUEncodedPartFactory);
     }
 
     public function testCopyHeaders()
     {
         $helper = $this->newGenericHelper();
-        $from = $this->newMockMimePart();
-        $to = $this->newMockMimePart();
+        $from = $this->newMockIMimePart();
+        $to = $this->newMockIMimePart();
 
         $mockHeader = $this->getMockBuilder('ZBateson\MailMimeParser\Header\GenericHeader')
             ->disableOriginalConstructor()
@@ -79,7 +71,7 @@ class GenericHelperTest extends TestCase
     public function testRemoveContentHeadersAndContent()
     {
         $helper = $this->newGenericHelper();
-        $part = $this->newMockMimePart();
+        $part = $this->newMockIMimePart();
 
         $part->expects($this->exactly(12))
             ->method('removeHeader')
@@ -107,8 +99,8 @@ class GenericHelperTest extends TestCase
     {
         $helper = $this->newGenericHelper();
 
-        $from = $this->newMockMimePart();
-        $to = $this->newMockMimePart();
+        $from = $this->newMockIMimePart();
+        $to = $this->newMockIMimePart();
 
         $mockHeader = $this->getMockBuilder('ZBateson\MailMimeParser\Header\GenericHeader')
             ->disableOriginalConstructor()
@@ -157,21 +149,14 @@ class GenericHelperTest extends TestCase
     {
         $helper = $this->newGenericHelper();
 
-        $from = $this->newMockMimePart();
-        $to = $this->newMockMimePart();
+        $from = $this->newMockIMimePart();
+        $to = $this->newMockIMimePart();
 
-        $partBuilder = $this->getMockBuilder('ZBateson\MailMimeParser\Message\Part\PartBuilder')
-            ->disableOriginalConstructor()
-            ->getMock();
-        $this->mockPartBuilderFactory->expects($this->once())
-            ->method('newPartBuilder')
-            ->with($this->mockMimePartFactory)
-            ->willReturn(
-                $partBuilder
-            );
-        $partBuilder->expects($this->once())
-            ->method('createMessagePart')
-            ->willReturn($to);
+        $mockPart = $this->newMockIMimePart();
+        $this->mockMimePartFactory
+            ->expects($this->once())
+            ->method('newInstance')
+            ->willReturn($mockPart);
 
         $from->expects($this->once())
             ->method('hasContent')
@@ -208,11 +193,11 @@ class GenericHelperTest extends TestCase
     {
         $helper = $this->newGenericHelper();
 
-        $from = $this->newMockMessage();
-        $to = $this->newMockMimePart();
+        $from = $this->newMockIMessage();
+        $to = $this->newMockIMimePart();
 
-        $child1 = $this->newMockMimePart();
-        $child2 = $this->newMockMimePart();
+        $child1 = $this->newMockIMimePart();
+        $child2 = $this->newMockIMimePart();
 
         $mockHeader = $this->getMockBuilder('ZBateson\MailMimeParser\Header\GenericHeader')
             ->disableOriginalConstructor()
@@ -227,8 +212,11 @@ class GenericHelperTest extends TestCase
             ->willReturn($toStream);
 
         $to->expects($this->once())
-            ->method('getChildParts')
+            ->method('getChildIterator')
             ->willReturn([ $child1, $child2 ]);
+        $to->expects($this->once())
+            ->method('getChildCount')
+            ->willReturn(2);
 
         $from->expects($this->exactly(1))
             ->method('removePart')
@@ -273,16 +261,16 @@ class GenericHelperTest extends TestCase
     {
         $helper = $this->newGenericHelper();
 
-        $message = $this->newMockMessage();
-        $part = $this->newMockMimePart();
-        $rep = $this->newMockMimePart();
+        $message = $this->newMockIMessage();
+        $part = $this->newMockIMimePart();
+        $rep = $this->newMockIMimePart();
 
         $part->expects($this->once())
             ->method('getParent')
             ->willReturn($message);
-        $message->expects($this->once())
+        $message->expects($this->exactly(2))
             ->method('removePart')
-            ->with($part)
+            ->withConsecutive([ $rep ], [ $part ])
             ->willReturn(10);
         $message->expects($this->once())
             ->method('addChild')
